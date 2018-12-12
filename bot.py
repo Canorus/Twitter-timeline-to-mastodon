@@ -30,7 +30,7 @@ user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit
 #ua = UserAgent()
 profile = webdriver.FirefoxProfile()
 options = Options()
-options.headless = True
+#options.headless = True
 profile.set_preference('general.useragent.override',user_agent)
 #profile.set_preference('general.useragent.override',ua.firefox)
 browser = webdriver.Firefox(options=options, firefox_profile = profile, executable_path = r'/Users/Canor/scripts/twtimelinebot/geckodriver')
@@ -57,17 +57,12 @@ for item in home_timeline.find_all('article'):
     content = dict()
     # tweet text
     try:
-        tweet_text = str(item.find('p').contents[0])
-        try:
-            tweet_text = re.sub('<a.*?>','',tweet_text)
-            tweet_text = re.sub('</a>','',tweet_text)
-        except:
-            pass
+        tweet_text = str(item.find('p',attrs={'class':'js-tweet-text'}).get_text())
     except:
         tweet_text = ''
     # user id
     try:
-        user_id = str(item.find('span',attrs={'class':'account-inline'}).contents[0]) + '(' + str(item.find('span',attrs={'class':'username'}).contents[0])+')'
+        user_id = str(item.find('span',attrs={'class':'account-inline'}).get_text()) + '(' + str(item.find('span',attrs={'class':'username'}).get_text())+')'
     except:
         user_id = ''
     # link
@@ -75,6 +70,11 @@ for item in home_timeline.find_all('article'):
         link = str(item.find('time').a['href'])
     except:
         link = ''
+    # quote
+    try:
+        quote = '\n>>>' + str(item.find('p',attrs={'class':'js-quoted-tweet-text'}).get_text())
+    except:
+        quote = ''
     content['status'] = tweet_text + ' via ' + user_id + ' ' + link
     tweets.append(content)
     content['visibility'] = 'unlisted'
