@@ -95,15 +95,30 @@ def retrieve(username, instance):
     if str(instance)[:8] != 'https://':
         instance = 'https://'+str(instance)
     access_token = ''
-    with open('/Users/Canor/scripts/twtimelinebot/cred.json') as f:
-        cred = json.load(f)
-    for i in cred:
-        if instance == i[0]['instance']:
-            for k in i:
-                try:
-                    if username == k['username']:
-                        access_token = k['cred']['access_token']
-                        break
-                except:
-                    pass
+    try:
+        with open('/Users/Canor/scripts/twtimelinebot/cred.json') as f:
+            cred = json.load(f)
+        for i in cred:
+            if instance == i[0]['instance']:
+                for k in i:
+                    try:
+                        if username == k['username']:
+                            access_token = k['cred']['access_token']
+                            break
+                    except:
+                        pass
+        if access_token == '':
+            raise
+    except:
+        with open('/volume1/homes/canor/scripts/twtimelinebot/cred.json') as f:
+            cred = json.load(f)
+        for i in cred:
+            if instance == i[0]['instance']:
+                for k in i:
+                    try:
+                        if username == k['username']:
+                            access_token = k['cred']['access_token']
+                            break
+                    except:
+                        pass
     return access_token
