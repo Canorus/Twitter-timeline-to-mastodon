@@ -94,7 +94,7 @@ def crawl():
             tweet_text = ''
         # user id
         try:
-            user_id = str(item.find('span', attrs={'class': 'account-inline'}).get_text()) + '(' + str(item.find('span', attrs={'class': 'username'}).get_text())+')'
+            user_id = str(item.find('span', attrs={'class': 'account-inline'}).get_text()).replace('@','@ ') #+ '(' + str(item.find('span', attrs={'class': 'username'}).get_text())+')'
         except:
             user_id = ''
         # link

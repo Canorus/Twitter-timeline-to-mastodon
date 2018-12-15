@@ -1,9 +1,9 @@
 # Twitter timeline to mastodon
-~~Crawl Twitter timeline and send toot.
+~~Crawl Twitter timeline and send toot.~~
 
-This script uses Firefox's geckodriver. May not work on Windows machine.
+~~This script uses Firefox's geckodriver. May not work on Windows machine.~~
 
-This is just an initial commit and a lot has to be done.~~
+~~This is just an initial commit and a lot has to be done.~~
 
 ------
 
