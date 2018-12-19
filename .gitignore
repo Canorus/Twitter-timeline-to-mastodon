@@ -2,3 +2,4 @@
 cred.json
 *.html
 *.txt
+__pycache__/
