@@ -3,3 +3,4 @@ cred.json
 *.html
 *.txt
 __pycache__/
+config.json
