@@ -84,7 +84,6 @@ def crawl():
         #print('current read: '+item['data-tweet-id'])
         global current_read
         if item['data-tweet-id'] == current_read or item['data-tweet-id'] == last_read:
-            print('break!!')
             break
         content = dict()
         # tweet text
