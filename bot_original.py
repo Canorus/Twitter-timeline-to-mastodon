@@ -29,26 +29,27 @@ twitter_pw = input('Please input your twitter password: ')
 # FF profile via https://stackoverflow.com/a/48459249
 # String via https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent/Firefox
 user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/7.0.4 Mobile/16B91 Safari/605.1.15"
+###
 #ua = UserAgent()
-profile = webdriver.FirefoxProfile()
-options = Options()
-options.headless = True
-profile.set_preference('general.useragent.override', user_agent)
+#profile = webdriver.FirefoxProfile()
+#options = Options()
+#options.headless = True
+#profile.set_preference('general.useragent.override', user_agent)
 # profile.set_preference('general.useragent.override',ua.firefox)
-try:
-    browser = webdriver.Firefox(options=options, firefox_profile=profile,executable_path=r'/Users/Canor/scripts/twtimelinebot/geckodriver')
-except:
-    browser = webdriver.Firefox(options=options, firefox_profile=profile,executable_path=r'/volume1/homes/canor/scripts/twtimelinebot/geckodriver_arm7hf_0.23.0')
+#browser = webdriver.Firefox(options=options, firefox_profile=profile,executable_path='/home/canor/scripts/twtimelinebot/phantomjs')
+###
+###
+# phantomjs
+# https://pythonspot.com/selenium-phantomjs/
+browser = webdriver.PhantomJS(executable_path='/home/canor/scripts/twtimelinebot/phantomjs')
 browser.get('https://twitter.com/login?hide_message=true&redirect_after_login=https%3A%2F%2Ftweetdeck.twitter.com%2F%3Fvia_twitter_login%3Dtrue')
 # whatever here
 browser.implicitly_wait(5)
-browser.find_element_by_name(
-    'session[username_or_email]').send_keys(twitter_id)
+browser.find_element_by_name('session[username_or_email]').send_keys(twitter_id)
 # selenium.common.exceptions.ElementNotInteractableException: Message: Element <input class="text-input email-input js-signin-email" name="session[username_or_email]" type="text"> is not reachable by keyboard
 # pw
 sleep(1)
-browser.find_element_by_name(
-    'session[password]').send_keys(twitter_pw+Keys.RETURN)
+browser.find_element_by_name('session[password]').send_keys(twitter_pw+Keys.RETURN)
 # <button type="submit" class="submit EdgeButton EdgeButton--primary EdgeButtom--medium">로그인</button>
 
 print('headless mode activated')
@@ -67,6 +68,12 @@ try:
     wait_til_load = WebDriverWait(browser,30).until(EC.presence_of_element_located((By.CLASS_NAME,'js-chirp-container')))
 except TimeoutException:
     pass
+def upload_image(url):
+    import json
+    image_byte = requests.get(url).content
+    files = {'file':image_byte}
+    post_img = requests.post(mast_instance+'/api/v1/media',headers=head,files=files)
+    return post_img.content.decode('utf-8').json()['id']
 
 def crawl():
     home_timeline = bs(browser.page_source, 'html.parser').find('div', attrs={'class': 'js-chirp-container'})
@@ -107,7 +114,19 @@ def crawl():
             quote = '\n>>>\n' + str(item.find('p', attrs={'class': 'js-quoted-tweet-text'}).get_text())
         except:
             quote = ''
+        #image
+        try:
+            media = list()
+            image_list = item.find_all('a',attrs={'class':'reverse-image-search'})
+            for i in len(image_list):
+                image_list[i] = str(image_list['href']).split('image_url=')[1]
+                image_list[i] = image_list[i].split('?')[0]
+                media.append(upload(image_list[i]))
+        except:
+            print('no image')
+            media=[]
         content['status'] = tweet_text + ' via' + user_id + ' ' + link + quote
+        cotent['media_ids[]'] = media
         tweets.append(content)
         content['visibility'] = 'unlisted'
         t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=content)

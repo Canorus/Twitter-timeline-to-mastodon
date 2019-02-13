@@ -162,9 +162,11 @@ def crawl():
             media=[]
         content['status'] = tweet_text + ' via' + user_id + ' ' + link + quote
         content['media_ids[]'] = media
-        tweets.append(content)
         content['visibility'] = 'unlisted'
-        t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=content)
+        tweets.insert(0,content)
+    
+    for tweet in tweets:
+        t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=tweet)
         #print(content)
         print(t)
         sleep(1)
@@ -175,5 +177,5 @@ def crawl():
 
 while True:
     crawl()
-    sleep(15)
+    sleep(5)
 # browser.quit()
