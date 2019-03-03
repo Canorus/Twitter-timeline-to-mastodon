@@ -91,7 +91,7 @@ def upload_image_url(url):
     img_byte = requests.get(url).content
     files = {'file':img_byte}
     r = requests.post(mast_instance+'/api/v1/media',headers=head,files=files)
-    print(r.json()['id'])
+    #print(r.json()['id'])
     return r.json()['id']
     
 def crawl():
@@ -102,8 +102,8 @@ def crawl():
             lr_w.write(str(home_timeline.find('article')['data-tweet-id']))
         except:
             pass
-    with open(base+'/home_timeline.html', 'w') as f:
-        f.write(str(home_timeline))
+    #with open(base+'/home_timeline.html', 'w') as f:
+    #    f.write(str(home_timeline))
     tweets = list()
     for item in home_timeline.find_all('article'):
         #print('last read: '+last_read)
@@ -149,7 +149,6 @@ def crawl():
                     print('single image')
                     image_list = list()
                     image_list.append(item.find_all('a',attrs={'class':'reverse-image-search'})[0])
-                print(image_list)
                 for i in range(len(image_list)):
                     image_list[i] = str(image_list[i]['href']).split('image_url=')[1]
                     image_list[i] = image_list[i].split('?')[0]
@@ -160,7 +159,7 @@ def crawl():
         except:
             print('error occured')
             media=[]
-        content['status'] = tweet_text + ' via' + user_id + ' ' + link + quote
+        content['status'] = tweet_text + ' via ' + user_id + ' ' + link + quote
         content['media_ids[]'] = media
         content['visibility'] = 'unlisted'
         tweets.insert(0,content)
@@ -168,7 +167,6 @@ def crawl():
     for tweet in tweets:
         t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=tweet)
         #print(content)
-        print(t)
         sleep(1)
     try:
         current_read = home_timeline.find('article')['data-tweet-id']
