@@ -86,7 +86,7 @@ try:
 except TimeoutException:
     pass
 
-def upload_image_url(url):
+def upload_media(url):
     import json
     img_byte = requests.get(url).content
     files = {'file':img_byte}
@@ -140,10 +140,21 @@ def crawl():
             quote = ''
         # image
         try:
-            media = list()
             if len(item.find_all('div',attrs={'class':'js-media'})):
+                media = []
                 print('media found')
-                if len(item.find_all('div',attrs={'class':'media-grid-container'})):
+                if len(item.find('div',attrs={'class':'is-video'})):
+                    vid_url = item.find('div',attrs={'class':'is-video'}).a['href']
+                    browser.execute_script("window.open('"+vid_url+"');")
+                    browser.implicitly_wait(5)
+                    browser.switch_to.window(browser.window_handles[1])
+                    vid_bs = bs(browser.page_source,'html.parser')
+                    vid_url = vid_bs.find('video')['src']
+                    u = upload_media(vid_url)
+                    media.append(u)
+                    browser.close()
+                    browser.switch_to.window(browser.window_handles[0])
+                elif len(item.find_all('div',attrs={'class':'media-grid-container'})):
                     image_list = item.find_all('a',attrs={'class':'reverse-image-search'})
                 else:
                     print('single image')
@@ -152,7 +163,7 @@ def crawl():
                 for i in range(len(image_list)):
                     image_list[i] = str(image_list[i]['href']).split('image_url=')[1]
                     image_list[i] = image_list[i].split('?')[0]
-                    u = upload_image_url(image_list[i])
+                    u = upload_media(image_list[i])
                     media.append(u)
             else:
                 print('no media found')
