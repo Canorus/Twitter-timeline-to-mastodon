@@ -140,11 +140,13 @@ def crawl():
             quote = ''
         # image
         try:
+            media=[]
             if len(item.find_all('div',attrs={'class':'js-media'})):
-                media = []
                 print('media found')
                 if len(item.find('div',attrs={'class':'is-video'})):
+                    print('video detected')
                     vid_url = item.find('div',attrs={'class':'is-video'}).a['href']
+                    media = []
                     browser.execute_script("window.open('"+vid_url+"');")
                     browser.implicitly_wait(5)
                     browser.switch_to.window(browser.window_handles[1])
