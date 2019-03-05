@@ -150,8 +150,10 @@ def crawl():
                     browser.execute_script("window.open('"+vid_url+"');")
                     browser.implicitly_wait(5)
                     browser.switch_to.window(browser.window_handles[1])
+                    browser.find_element_by_xpath("//div[@aria-label='이 동영상 재생']").click()
+                    browser.implicitly_wait(5)
                     vid_bs = bs(browser.page_source,'html.parser')
-                    vid_url = vid_bs.find('video')['src']
+                    vid_url = str(vid_bs.find('video')['src']).replace('?tag=6','')
                     u = upload_media(vid_url)
                     media.append(u)
                     browser.close()
