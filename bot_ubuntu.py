@@ -143,21 +143,37 @@ def crawl():
             media=[]
             if len(item.find_all('div',attrs={'class':'js-media'})):
                 print('media found')
-                if len(item.find('div',attrs={'class':'is-video'})):
+                if item.find('div',attrs={'class':'is-video'}):
                     print('video detected')
                     vid_url = item.find('div',attrs={'class':'is-video'}).a['href']
+                    print('vid_url: '+vid_url)
                     media = []
                     browser.execute_script("window.open('"+vid_url+"');")
+                    print('open new window with video url')
                     browser.implicitly_wait(5)
+                    print('waiting')
                     browser.switch_to.window(browser.window_handles[1])
+                    print('window switched')
                     browser.find_element_by_xpath("//div[@aria-label='이 동영상 재생']").click()
+                    print('start video')
                     browser.implicitly_wait(5)
+                    print('waiting')
                     vid_bs = bs(browser.page_source,'html.parser')
-                    vid_url = str(vid_bs.find('video')['src']).replace('?tag=6','')
+                    print('bsing video page')
+                    vid_url = vid_bs.find('video')['src']
+                    print('video src: '+vid_url)
                     u = upload_media(vid_url)
                     media.append(u)
                     browser.close()
+                    print('closed browser')
                     browser.switch_to.window(browser.window_handles[0])
+                    print('switched to tab 1')
+                    browser.implicitly_wait(1)
+                elif item.find('div',attrs={'class':'is-gif'}):
+                    print('gif detected')
+                    gif_url = item.find('video')['src']
+                    u = upload_media(gif_url)
+                    media.append(u)
                 elif len(item.find_all('div',attrs={'class':'media-grid-container'})):
                     image_list = item.find_all('a',attrs={'class':'reverse-image-search'})
                 else:
