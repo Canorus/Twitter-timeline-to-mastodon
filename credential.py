@@ -80,11 +80,9 @@ def retrieve(username, instance):
         if username in cred[instance]:
             return cred[instance][username]
         else:
-            #return register(instance)
-            return 0
+            return register(instance)
     else:
-        #return register(instance)
-        return 0
+        return register(instance)
 
 def delcred(username, instance):
     instance = chk_(instance)
