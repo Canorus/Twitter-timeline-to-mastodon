@@ -1,7 +1,7 @@
 # Twitter timeline to mastodon
 ~~Crawl Twitter timeline and send toot.~~
 
-~~This script uses Firefox's geckodriver. May not work on Windows machine.~~
+~~This script uses Firefox's geckodriver. May not work on Windows machine.~~ It uses Google Chrome.
 
 ~~This is just an initial commit and a lot has to be done.~~
 
@@ -14,6 +14,15 @@
 이 브랜치는 우분투 서버에서 동작한 코드를 커밋합니다.
 
 아직 초기 단계이므로 예상치 못한 버그가 있을 수 있습니다.
+
+## Requirements
+
+- [Google Chrome (for Linux preferrably)](https://support.google.com/chrome/a/answer/9025903?hl=ko)
+- [chromedriver](https://chromedriver.chromium.org/downloads) with matching version number
+- Python3
+- [Selenium](https://selenium-python.readthedocs.io)
+- [Requests](https://requests.readthedocs.io/en/master/)
+- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
 
 ## Todo
 
