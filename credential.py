@@ -2,6 +2,8 @@ import requests
 import json
 import os
 
+base = os.path.dirname(os.path.abspath(__file__)) + '/'
+
 def chk_(url):
     if url[:5] != 'https':
         return 'https://' + url
@@ -48,11 +50,11 @@ def register(instance, *args):
         login = {}
         login[instance] = user
         file_name = input('Set filename: ')
-        with open(file_name+'.json', 'w') as fw:
+        with open(base+file_name+'.json', 'w') as fw:
             json.dump(login, fw)
         return 0
     try:
-        with open('cred.json') as f:
+        with open(base+'cred.json') as f:
             login = json.load(f)
     except:
         login = {}
@@ -65,7 +67,7 @@ def register(instance, *args):
         user = dict()
         user[username] = access_token
         login[instance] = user
-    with open('cred.json', 'w') as f:
+    with open(base+'cred.json', 'w') as f:
         json.dump(login, f)
     print('returning access_token: '+access_token)
     return access_token
@@ -74,7 +76,7 @@ def register(instance, *args):
 def retrieve(username, instance):
     import os
     instance = chk_(instance)
-    with open('cred.json') as f:
+    with open(base+'cred.json') as f:
         cred = json.load(f)
     if instance in cred:
         if username in cred[instance]:
@@ -86,7 +88,7 @@ def retrieve(username, instance):
 
 def delcred(username, instance):
     instance = chk_(instance)
-    with open('cred.json') as fr:
+    with open(base+'cred.json') as fr:
         cred = json.load(fr)
     try:
         cred[instance].pop(username)
@@ -94,5 +96,5 @@ def delcred(username, instance):
             cred.pop(instance)
     except:
         print('matching user credential not found')
-    with open('cred.json', 'w') as f:
+    with open(base+'cred.json', 'w') as f:
         json.dump(cred,f)

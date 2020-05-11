@@ -12,9 +12,9 @@ import os
 import json
 import re
 
-base = os.path.dirname(os.path.abspath(__file__))
+base = os.path.dirname(os.path.abspath(__file__))+'/'
 try: # auto login from config.json
-    with open(base+'/config.json') as f:
+    with open(base+'config.json') as f:
         login_conf = json.load(f)
         mast_id = login_conf['mastodon']['id']
         mast_instance = login_conf['mastodon']['instance']
@@ -42,8 +42,9 @@ options = webdriver.ChromeOptions()
 options.add_argument('--headless') # headless mode
 options.add_argument('window-size=1920x1080')
 options.add_argument('user-agent='+user_agent)
-browser = webdriver.Chrome(base+'/chromedriver',options=options)
+browser = webdriver.Chrome(base + 'chromedriver', options=options)
 # here we go
+
 browser.get('https://twitter.com/login?hide_message=true&redirect_after_login=https%3A%2F%2Ftweetdeck.twitter.com%2F%3Fvia_twitter_login%3Dtrue')
 browser.implicitly_wait(8)
 # wait for page to load
@@ -53,13 +54,10 @@ browser.find_element_by_name('session[username_or_email]').send_keys(twitter_id)
 # chromedriver : element not interactable
 # input pw after 1 sec
 sleep(1)
-browser.find_element_by_name('session[password]').send_keys(twitter_pw+Keys.RETURN)
+browser.find_element_by_name('session[password]').send_keys(twitter_pw + Keys.RETURN)
+
 # <button type="submit" class="submit EdgeButton EdgeButton--primary EdgeButtom--medium">로그인</button>
 sleep(10)
-if bs(browser.page_source, 'html.parser').find('div', attrs={'class': 'js-chirp-container'}):
-    pass
-else:
-    browser.get('https://tweetdeck.twitter.com')
 
 print('headless mode activated')
 
@@ -67,16 +65,21 @@ print('headless mode activated')
 last_read = ''
 current_read = ''
 try:
-    with open(base+'/last_read.txt') as lr:
+    with open(base+'last_read.txt') as lr:
         for line in lr:
             last_read = line  # topmost data-tweet-id from last session will be in last_read var
 except:
-    with open(base+'/last_read.txt', 'w'):
+    with open(base+'last_read.txt', 'w'):
         pass
 try:
     wait_til_load = WebDriverWait(browser,30).until(EC.presence_of_element_located((By.CLASS_NAME,'js-chirp-container')))
-except TimeoutException:
-    pass
+except:
+    while True:
+        browser.get('https://tweetdeck.twitter.com')
+        sleep(300)
+        if bs(browser.page_source, 'html.parser').find('div', class_='js-chirp-container'):
+            print('found timeline')
+            break
 
 def upload_media(url):
     import json
@@ -87,11 +90,14 @@ def upload_media(url):
     return r.json()['id']
     
 def crawl():
-    home_timeline = bs(browser.page_source, 'html.parser').find('div', attrs={'class': 'js-chirp-container'})
-    #print(home_timeline)
-    with open(base+'/last_read.txt', 'w') as lr_w:
+    home_timeline = bs(browser.page_source, 'html.parser').find('div', class_='js-chirp-container')
+    if len(home_timeline.find_all('article'))>100:
+        browser.get('https://tweetdeck.com')
+        home_timeline = bs(browser.page_source, 'html.parser').find('div', class_='js-chirp-container')
+    with open(base+'last_read.txt', 'w') as lr_w:
         try:
             lr_w.write(str(home_timeline.find('article')['data-tweet-id']))
+            print('1: where am I')
         except:
             pass
     #with open(base+'/home_timeline.html', 'w') as f:
@@ -99,26 +105,26 @@ def crawl():
     tweets = list()
     try:
         for item in home_timeline.find_all('article'):
-            #print('last read: '+last_read)
-            #print('current read: '+item['data-tweet-id'])
+            print('2: number of items: '+str(len(home_timeline.find_all('article'))))
             global current_read
             if item['data-tweet-id'] == current_read or item['data-tweet-id'] == last_read:
-                #print('break!!')
+                print('3: break!!')
                 break
             content = dict()
             # tweet text
+            print('4: parsing tweet')
             try:
                 try:
-                    for link in item.find_all('a',attrs={'class':'url-ext'}):
+                    for link in item.find_all('a',class_='url-ext'):
                         link.string = link['data-full-url']
                 except:
                     pass
-                tweet_text = str(item.find('p', attrs={'class': 'js-tweet-text'}).get_text())
+                tweet_text = str(item.find('p', class_= 'js-tweet-text').get_text())
             except:
                 tweet_text = ''
             # user id
             try:
-                user_id = str(item.find('span', attrs={'class': 'account-inline'}).get_text()).replace('@','@ ') #+ '(' + str(item.find('span', attrs={'class': 'username'}).get_text())+')'
+                user_id = str(item.find('span', class_= 'account-inline').get_text()).replace('@','@ ') #+ '(' + str(item.find('span', class_= 'username'}).get_text())+')'
             except:
                 user_id = ''
             # link
@@ -128,76 +134,101 @@ def crawl():
                 link = ''
             # quote
             try:
-                quote = '\n>>>\n' + str(item.find('p', attrs={'class': 'js-quoted-tweet-text'}).get_text())
+                quote = '\n>>>\n' + str(item.find('p', class_= 'js-quoted-tweet-text').get_text())
             except:
                 quote = ''
             # image
             media = []
+            image = 0
+            print('5: checking media')
             try:
-                if len(item.find_all('div',attrs={'class':'js-media'})):
+                if len(item.find_all('div',class_='js-media')):
                     print('media found')
-                    if item.find('div',attrs={'class':'is-video'}):
-                        vid_url = item.find('div', attrs={'class': 'is-video'}).a['href']
-                        print('important: video detected')
-                        if 'youtu' in vid_url:
-                            print('is youtube')
-                            pass
-                        else:
-                            print('search video procedure initiated')
-                            browser.execute_script("window.open('');")
-                            browser.switch_to.window(browser.window_handles[1])
-                            browser.get(vid_url)
-                            browser.implicitly_wait(5)
-                            browser.find_element_by_xpath("//div[@aria-label='이 동영상 재생']").click()
-                            try:
-                                browser.find_element_by_xpath("//span[@class='volume-control'").click()
-                            except:
-                                pass
-                            sleep(5)
-                            vid_bs = bs(browser.page_source, 'html.parser')
-                            vid_url = vid_bs.find('video')['src']
-                            u = upload_media(vid_url)
-                            media.append(u)
-                            browser.close()
-                            browser.switch_to.window(browser.window_handles[0])
-                            browser.implicitly_wait(1)
-                            #home_timeline = bs(browser.page_source, 'html.parser').find('div', attrs={'class': 'js-chirp-container'})
-                    elif item.find('div',attrs={'class':'is-gif'}):
+                    if item.find('div', class_= 'is-video'):
+                        pass
+                        # vid_url = item.find('div', class_= 'is-video').a['href']
+                        # print('important: video detected')
+                        # if 'youtu' in vid_url:
+                        #     print('is youtube')
+                        #     pass
+                        # else:
+                        #     print('search video procedure initiated')
+                        #     browser.execute_script("window.open('');")
+                        #     browser.switch_to.window(browser.window_handles[1])
+                        #     browser.get(vid_url)
+                        #     browser.implicitly_wait(15)
+                        #     browser.find_element_by_xpath("//div[@aria-label='이 동영상 재생']").click()
+                        #     try:
+                        #         browser.find_element_by_xpath("//span[@class='volume-control'").click()
+                        #     except:
+                        #         pass
+                        #     sleep(7)
+                        #     vid_bs = bs(browser.page_source, 'html.parser')
+                        #     vid_url = vid_bs.find('video')['src']
+                        #     u = upload_media(vid_url)
+                        #     media.append(u)
+                        #     browser.implicitly_wait(3)
+                        #     browser.close()
+                        #     browser.switch_to.window(browser.window_handles[0])
+                        #     browser.implicitly_wait(3)
+                        #     home_timeline = bs(browser.page_source, 'html.parser').find('div', class_= 'js-chirp-container')
+                    elif item.find('div',class_='is-gif'):
                         print('gif detected')
-                        gif_url = item.find('video')['src']
+                        gif_url = item.find('div',class_='is-gif').find('video')['src']
                         u = upload_media(gif_url)
                         media.append(u)
-                    elif len(item.find_all('div',attrs={'class':'media-grid-container'})):
-                        image_list = item.find_all('a',attrs={'class':'reverse-image-search'})
+                    elif len(item.find_all('div', class_='media-grid-container')):
+                        print('multiple images detected')
+                        image_list = [i['style'] for i in item.find_all('a',class_='js-media-image-link')]
+                        for i in range(len(image_list)):
+                            image_ = re.search('https://.*?\.jpg', str(image_list[i])).group()
+                            u = upload_media(image_)
+                            media.append(u)
+                        #image = 1
                     else:
-                        print('single image')
+                        print('single image detected')
                         image_list = list()
-                        image_list.append(item.find_all('a',attrs={'class':'reverse-image-search'})[0])
-                    for i in range(len(image_list)):
-                        image_list[i] = str(image_list[i]['href']).split('image_url=')[1]
-                        image_list[i] = image_list[i].split('?')[0]
-                        u = upload_media(image_list[i])
+                        ut = item.find('a',class_='js-media-image-link')['style']
+                        im = re.search('https://.*?\.jpg',str(ut)).group()
+                        #image_list.append(item.find('a',class_='js-media-image-link block med-link media-item media-size-medium is-zoomable')['style'])
+                        #image = 1
+                        u = upload_media(im)
                         media.append(u)
+                    if image:
+                        for i in range(len(image_list)):
+                            image_list[i] = str(image_list[i]['href']).split('image_url=')[1]
+                            image_list[i] = image_list[i].split('?')[0]
+                            u = upload_media(image_list[i])
+                            media.append(u)
                 else:
                     print('no media found')
             except:
                 print('error occured')
-            content['status'] = tweet_text + '\nvia ' + user_id + ' ' + link + quote
+            print('6: combining texts')
+            content['status'] = user_id + '\n————————————\n' + tweet_text + quote + '\n————————————\n' +  link
             content['media_ids[]'] = media
+            content['sensitive'] = '1'
             content['visibility'] = 'unlisted'
             tweets.insert(0,content)
             print('------------------------------')
-        
-        for tweet in tweets:
-            t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=tweet)
-            #print(content)
-            sleep(1)
-        try:
-            current_read = home_timeline.find('article')['data-tweet-id']
-        except:
-            current_read = last_read
+        if len(tweets):
+            print('7: sending toot')
+            for tweet in tweets:
+                t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=tweet)
+            print('8: save position')
+            try:
+                current_read = home_timeline.find('article')['data-tweet-id']
+                if current_read == last_read:
+                    print('no new tweet')
+                else:
+                    print('new position set: '+current_read)
+            except:
+                current_read = last_read
+                print('new position not recognized; using old position')
+        else:
+            print('no new tweet')
     except:
-        with open('error.html', 'w') as fw:
+        with open(base+'error.html', 'w') as fw:
             fw.write(str(home_timeline))
             print('wrote to error.html')
 
