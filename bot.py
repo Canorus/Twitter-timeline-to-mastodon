@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup as bs
 from credential import retrieve
 from credential import chk_
 from time import sleep
+from logg import *
 import requests
 import os
 import json
@@ -42,7 +43,8 @@ options = webdriver.ChromeOptions()
 options.add_argument('--headless') # headless mode
 options.add_argument('window-size=1920x1080')
 options.add_argument('user-agent='+user_agent)
-browser = webdriver.Chrome(base + 'chromedriver', options=options)
+#browser = webdriver.Chrome(base + 'chromedriver', options=options)
+browser = webdriver.Chrome('/usr/bin/chromedriver', options=options)
 # here we go
 
 browser.get('https://twitter.com/login?hide_message=true&redirect_after_login=https%3A%2F%2Ftweetdeck.twitter.com%2F%3Fvia_twitter_login%3Dtrue')
@@ -75,10 +77,11 @@ try:
     wait_til_load = WebDriverWait(browser,30).until(EC.presence_of_element_located((By.CLASS_NAME,'js-chirp-container')))
 except:
     while True:
+        logger.debug('retrying sign in')
         browser.get('https://tweetdeck.twitter.com')
         sleep(300)
         if bs(browser.page_source, 'html.parser').find('div', class_='js-chirp-container'):
-            print('found timeline')
+            logger.debug('found timeline')
             break
 
 def upload_media(url):
@@ -97,7 +100,7 @@ def crawl():
     with open(base+'last_read.txt', 'w') as lr_w:
         try:
             lr_w.write(str(home_timeline.find('article')['data-tweet-id']))
-            print('1: where am I')
+            logger.debug('1: where am I')
         except:
             pass
     #with open(base+'/home_timeline.html', 'w') as f:
@@ -105,14 +108,14 @@ def crawl():
     tweets = list()
     try:
         for item in home_timeline.find_all('article'):
-            print('2: number of items: '+str(len(home_timeline.find_all('article'))))
+            logger.debug('2: number of items: '+str(len(home_timeline.find_all('article'))))
             global current_read
             if item['data-tweet-id'] == current_read or item['data-tweet-id'] == last_read:
-                print('3: break!!')
+                logger.debug('3: break!!')
                 break
             content = dict()
             # tweet text
-            print('4: parsing tweet')
+            logger.debug('4: parsing tweet')
             try:
                 try:
                     for link in item.find_all('a',class_='url-ext'):
@@ -140,10 +143,10 @@ def crawl():
             # image
             media = []
             image = 0
-            print('5: checking media')
+            logger.debug('5: checking media')
             try:
                 if len(item.find_all('div',class_='js-media')):
-                    print('media found')
+                    logger.debug('media found')
                     if item.find('div', class_= 'is-video'):
                         pass
                         # vid_url = item.find('div', class_= 'is-video').a['href']
@@ -173,12 +176,12 @@ def crawl():
                         #     browser.implicitly_wait(3)
                         #     home_timeline = bs(browser.page_source, 'html.parser').find('div', class_= 'js-chirp-container')
                     elif item.find('div',class_='is-gif'):
-                        print('gif detected')
+                        logger.debug('gif detected')
                         gif_url = item.find('div',class_='is-gif').find('video')['src']
                         u = upload_media(gif_url)
                         media.append(u)
                     elif len(item.find_all('div', class_='media-grid-container')):
-                        print('multiple images detected')
+                        logger.debug('multiple images detected')
                         image_list = [i['style'] for i in item.find_all('a',class_='js-media-image-link')]
                         for i in range(len(image_list)):
                             image_ = re.search('https://.*?\.jpg', str(image_list[i])).group()
@@ -186,7 +189,7 @@ def crawl():
                             media.append(u)
                         #image = 1
                     else:
-                        print('single image detected')
+                        logger.debug('single image detected')
                         image_list = list()
                         ut = item.find('a',class_='js-media-image-link')['style']
                         im = re.search('https://.*?\.jpg',str(ut)).group()
@@ -201,39 +204,39 @@ def crawl():
                             u = upload_media(image_list[i])
                             media.append(u)
                 else:
-                    print('no media found')
+                    logger.debug('no media found')
             except:
-                print('error occured')
-            print('6: combining texts')
+                logger.debug('error occured')
+            logger.debug('6: combining texts')
             content['status'] = user_id + '\n————————————\n' + tweet_text + quote + '\n————————————\n' +  link
             content['media_ids[]'] = media
             content['sensitive'] = '1'
-            content['visibility'] = 'unlisted'
+            content['visibility'] = 'private'
             tweets.insert(0,content)
-            print('------------------------------')
+            logger.debug('------------------------------')
         if len(tweets):
-            print('7: sending toot')
+            logger.debug('7: sending toot')
             for tweet in tweets:
                 t = requests.post(mast_instance+'/api/v1/statuses',headers=head, data=tweet)
-            print('8: save position')
+            logger.debug('8: save position')
             try:
                 current_read = home_timeline.find('article')['data-tweet-id']
                 if current_read == last_read:
-                    print('no new tweet')
+                    logger.debug('no new tweet')
                 else:
-                    print('new position set: '+current_read)
+                    logger.debug('new position set: '+current_read)
             except:
                 current_read = last_read
-                print('new position not recognized; using old position')
+                logger.debug('new position not recognized; using old position')
         else:
-            print('no new tweet')
+            logger.debug('no new tweet')
     except:
         with open(base+'error.html', 'w') as fw:
             fw.write(str(home_timeline))
-            print('wrote to error.html')
+            logger.debug('wrote to error.html')
 
 while True:
     crawl()
     sleep(5)
-    print('==============================')
+    logger.debug('==============================')
 # browser.quit()
