@@ -4,3 +4,4 @@ cred.json
 *.txt
 __pycache__/
 config.json
+update_chromedriver.py
