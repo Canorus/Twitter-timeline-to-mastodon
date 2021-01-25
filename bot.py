@@ -13,7 +13,9 @@ import os
 import json
 import re
 
-base = os.path.dirname(os.path.abspath(__file__))+'/'
+#base = os.path.dirname(os.path.abspath(__file__))+'/'
+base = os.path.join(os.path.dirname(os.path.abspath(__file__)),'')
+
 try: # auto login from config.json
     with open(base+'config.json') as f:
         login_conf = json.load(f)
@@ -45,8 +47,8 @@ options.add_argument('window-size=1920x1080')
 options.add_argument('user-agent='+user_agent)
 #browser = webdriver.Chrome(base + 'chromedriver', options=options)
 browser = webdriver.Chrome('/usr/bin/chromedriver', options=options)
-# here we go
 
+# here we go
 browser.get('https://twitter.com/login?hide_message=true&redirect_after_login=https%3A%2F%2Ftweetdeck.twitter.com%2F%3Fvia_twitter_login%3Dtrue')
 browser.implicitly_wait(8)
 # wait for page to load
@@ -61,7 +63,7 @@ browser.find_element_by_name('session[password]').send_keys(twitter_pw + Keys.RE
 # <button type="submit" class="submit EdgeButton EdgeButton--primary EdgeButtom--medium">로그인</button>
 sleep(10)
 
-print('headless mode activated')
+logger.info('headless mode activated')
 
 # last read
 last_read = ''
@@ -89,7 +91,7 @@ def upload_media(url):
     img_byte = requests.get(url).content
     files = {'file':img_byte}
     r = requests.post(mast_instance+'/api/v1/media',headers=head,files=files)
-    #print(r.json()['id'])
+    logger.debug(r.json()['id'])
     return r.json()['id']
     
 def crawl():
@@ -108,6 +110,9 @@ def crawl():
     tweets = list()
     try:
         for item in home_timeline.find_all('article'):
+            with open(base + 'blacklist.txt', 'r') as f: # grab blacklist
+                bl = [x.strip() for x in f.read().split('\n') if x != '']
+                print('blacklist: ', bl)
             logger.debug('2: number of items: '+str(len(home_timeline.find_all('article'))))
             global current_read
             if item['data-tweet-id'] == current_read or item['data-tweet-id'] == last_read:
@@ -117,17 +122,25 @@ def crawl():
             # tweet text
             logger.debug('4: parsing tweet')
             try:
-                try:
+                try: # get linked url in case url in tweet text is abbreviated
                     for link in item.find_all('a',class_='url-ext'):
                         link.string = link['data-full-url']
                 except:
                     pass
-                tweet_text = str(item.find('p', class_= 'js-tweet-text').get_text())
+                tweet_text = str(item.find('p', class_= 'js-tweet-text').get_text()) # actual text
+                logger.info('tweet text: '+tweet_text)
+                for blw in bl: # continue if blacklisted word is included
+                    if blw in [t.strip() for t in tweet_text.split(' ')]:
+                        logger.debug([t.stip() for t in tweet_text.split(' ')])
+                        logger.info('blacklisted word detected')
+                        continue
             except:
                 tweet_text = ''
             # user id
             try:
                 user_id = str(item.find('span', class_= 'account-inline').get_text()).replace('@','@ ') #+ '(' + str(item.find('span', class_= 'username'}).get_text())+')'
+                logger.info('user id: '+user_id)
+                username = user_id.split('@')[0].strip() # for self retweet detection
             except:
                 user_id = ''
             # link
@@ -135,9 +148,21 @@ def crawl():
                 link = str(item.find('time').a['href'])
             except:
                 link = ''
+            # check retweeted_by
+            try:
+                rt_by = str(item.find('div', class_='nbfc').a.get_text().strip())
+                logger.info('rt by: '+rt_by)
+            except:
+                rt_by = ''
+            if username == rt_by: # if tweet is retweeted by composed
+                logger.info('composer retweeted; continue')
+                continue
             # quote
             try:
                 quote = '\n>>>\n' + str(item.find('p', class_= 'js-quoted-tweet-text').get_text())
+                for blw in bl:
+                    if blw in quote:
+                        continue
             except:
                 quote = ''
             # image
@@ -148,7 +173,7 @@ def crawl():
                 if len(item.find_all('div',class_='js-media')):
                     logger.debug('media found')
                     if item.find('div', class_= 'is-video'):
-                        pass
+                        pass # all is-video items are handled as is-gif in Tweetdeck
                         # vid_url = item.find('div', class_= 'is-video').a['href']
                         # print('important: video detected')
                         # if 'youtu' in vid_url:
@@ -211,9 +236,9 @@ def crawl():
             content['status'] = user_id + '\n————————————\n' + tweet_text + quote + '\n————————————\n' +  link
             content['media_ids[]'] = media
             content['sensitive'] = '1'
-            content['visibility'] = 'private'
+            content['visibility'] = 'unlisted'
             tweets.insert(0,content)
-            logger.debug('------------------------------')
+            logger.info('------------------------------')
         if len(tweets):
             logger.debug('7: sending toot')
             for tweet in tweets:
@@ -238,5 +263,5 @@ def crawl():
 while True:
     crawl()
     sleep(5)
-    logger.debug('==============================')
+    logger.info('==============================')
 # browser.quit()
