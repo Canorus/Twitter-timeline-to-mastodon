@@ -24,6 +24,8 @@
 - [Requests](https://requests.readthedocs.io/en/master/)
 - [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
 
+사용 전 config\_sample.json 을 config.sample 로 복사한 뒤 해당 내용에 맞게 기입한 후 bot.py 를 실행하시면 됩니다. 로그인 과정을 통해 인증 정보를 생성해야 하므로 머리가 달려있는 환경에서 진행하여 주십시오.
+
 ## Todo
 
 - [x] 반복 크롤링
